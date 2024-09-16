@@ -22,7 +22,7 @@ import {
 	addDynamoPermissions
 } from '../common/iam-helper';
 import path = require('path');
-
+// todo: Change this to image saving stack. Change Lambda to be image saving lambda and use Step Functions for WorkFlow
 export class DataHandlerStack extends Stack {
 	public readonly imagesBucketName: string;
 	public readonly certificateDataTableName: string;
