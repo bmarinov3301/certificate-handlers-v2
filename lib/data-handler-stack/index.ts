@@ -1,5 +1,10 @@
 import { Construct } from 'constructs';
-import { resourcePrefix } from '../constants';
+import {
+	resourcePrefix,
+	lambdaCustomHeaderName,
+	lambdaCustomHeaderValue,
+	restApiAllowedOrigins
+} from '../constants';
 import {
 	Stack,
 	StackProps,
@@ -21,6 +26,7 @@ import path = require('path');
 export class DataHandlerStack extends Stack {
 	public readonly imagesBucketName: string;
 	public readonly certificateDataTableName: string;
+	public readonly lambda: NodejsFunction;
 
 	constructor(scope: Construct, id: string, props?: StackProps) {
 		super(scope, id, props);
@@ -60,8 +66,15 @@ export class DataHandlerStack extends Stack {
 			entry: path.join(__dirname, 'lambda-functions/data-handler-lambda.ts'),
 			memorySize: 128,
 			timeout: Duration.seconds(10),
-			role: dataHandlerLambdaRole
+			role: dataHandlerLambdaRole,
+			environment: {
+				imageBuckerName: imagesBucket.bucketName,
+				lambdaCustomHeaderName,
+				lambdaCustomHeaderValue,
+				allowedOrigin: restApiAllowedOrigins[0]
+			}
 		});
+		this.lambda = dataHandlerLambda;
 	}
 }
 
