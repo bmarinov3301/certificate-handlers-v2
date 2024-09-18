@@ -9,7 +9,7 @@ import {
   ResponseHeaders,
   ParsedFormData,
   CertificateData
-} from '../types';
+} from '../../types';
 
 const isEventValid = (headers: APIGatewayProxyEventHeaders): boolean | undefined => {
 	console.log('Checking event header values...');

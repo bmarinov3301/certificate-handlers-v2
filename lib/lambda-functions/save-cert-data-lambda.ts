@@ -5,10 +5,10 @@ import {
 } from 'aws-lambda';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { env } from 'process';
-import functionUtils from './function-utils';
-import s3Utils from './s3-utils';
-import pdfUtils from './pdf-utils';
-import dynamoUtil from './dynamo-util';
+import functionUtils from './utils/function-utils';
+import s3Utils from './utils/s3-utils';
+import pdfUtils from './utils/pdf-utils';
+import dynamoUtil from './utils/dynamo-util';
 
 const imageBucketName = env.imageBuckerName ?? '';
 const certDataTableName = env.certDataTableName ?? '';

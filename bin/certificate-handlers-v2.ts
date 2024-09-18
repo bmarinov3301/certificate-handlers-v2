@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { DataHandlerStack } from '../lib/data-handler-stack';
-import { RestApiStack } from '../lib/api-stack';
+import { CertificateHandlersV2Stack } from '../lib/certificate-handlers-v2-stack';
 
 const app = new cdk.App();
-const dataHandlerStack = new DataHandlerStack(app, 'DataHandlerStack', {});
-const apiGatewayStack = new RestApiStack(app, 'RestApiStack', {
-	saveDataLambda: dataHandlerStack.lambda
-});
+new CertificateHandlersV2Stack(app, 'CertificateHandlersV2Stack');

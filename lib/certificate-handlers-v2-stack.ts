@@ -7,7 +7,7 @@ import {
 	pdfTemplateFile,
 	pdfDataEndpoint,
 	userTimeZone
-} from '../constants';
+} from './constants';
 import {
 	Stack,
 	StackProps,
@@ -18,13 +18,16 @@ import {
 	aws_iam as iam,
 	aws_lambda as lambda
 } from 'aws-cdk-lib';
+import {
+  RestApi,
+  LambdaIntegration,
+  Cors
+} from 'aws-cdk-lib/aws-apigateway';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import stackUtils from '../stack-utils';
+import stackUtils from './stack-utils';
 import path = require('path');
-// todo: Change this to image saving stack. Change Lambda to be image saving lambda and use Step Functions for WorkFlow
-export class DataHandlerStack extends Stack {
-	public readonly lambda: NodejsFunction;
 
+export class CertificateHandlersV2Stack extends Stack {
 	constructor(scope: Construct, id: string, props?: StackProps) {
 		super(scope, id, props);
 
@@ -73,6 +76,18 @@ export class DataHandlerStack extends Stack {
 				userTimeZone: userTimeZone
 			}
 		});
-		this.lambda = saveDataLambda;
+
+		// API Gateway
+		const apiGateway = new RestApi(this, 'APIGateway', {
+      restApiName: `${resourcePrefix}-rest-api-gateway`,
+			binaryMediaTypes: ['multipart/form-data'],
+      defaultCorsPreflightOptions: {
+        allowOrigins: restApiAllowedOrigins,
+        allowMethods: Cors.ALL_METHODS,
+        allowHeaders: ['Content-Type', lambdaCustomHeaderName],
+    }
+    });
+    const uploadDataResource = apiGateway.root.addResource('upload-data');
+    uploadDataResource.addMethod('POST', new LambdaIntegration(saveDataLambda));
 	}
 }

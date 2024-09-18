@@ -4,7 +4,7 @@ import {
 	PutObjectCommand,
 	S3Client
 } from '@aws-sdk/client-s3';
-import { UploadedImage } from '../types';
+import { UploadedImage } from '../../types';
 
 const s3Client = new S3Client();
 
