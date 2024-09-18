@@ -3,17 +3,13 @@ import {
   APIGatewayProxyEvent,
   APIGatewayProxyResult
 } from 'aws-lambda';
-import {
-	DynamoDBClient,
-	PutItemCommand
-} from '@aws-sdk/client-dynamodb';
 import { marshall } from '@aws-sdk/util-dynamodb';
 import { env } from 'process';
 import functionUtils from './function-utils';
 import s3Utils from './s3-utils';
 import pdfUtils from './pdf-utils';
+import dynamoUtil from './dynamo-util';
 
-const dynamoClient = new DynamoDBClient();
 const imageBucketName = env.imageBuckerName ?? '';
 const certDataTableName = env.certDataTableName ?? '';
 const pdfTemplate = env.pdfTemplateFile ?? '';
@@ -69,14 +65,9 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 	}
 }
 
-const saveItemToDynamo = async (fields: { [key: string]: string }, certId: string) => {
+const saveItemToDynamo = async (fields: { [key: string]: string }, certId: string): Promise<void> => {
 	const document = functionUtils.buildDynamoDocument(fields, certId, imageBucketName);
 	const item = marshall(document);
-	const dynamoCommand = new PutItemCommand({
-		TableName: certDataTableName,
-		Item: item
-	});
 
-	console.log(`Storing item with ID ${document.id} in DynamoDB table ${certDataTableName}...`);
-	await dynamoClient.send(dynamoCommand);
+	await dynamoUtil.uploadItem(certDataTableName, item);
 }

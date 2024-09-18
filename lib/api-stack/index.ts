@@ -20,8 +20,6 @@ interface Props extends StackProps {
 }
 
 export class RestApiStack extends Stack {
-	public readonly imagesBucketName: string;
-	public readonly certificateDataTableName: string;
 
 	constructor(scope: Construct, id: string, props: Props) {
 		super(scope, id, props);

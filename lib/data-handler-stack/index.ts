@@ -19,30 +19,23 @@ import {
 	aws_lambda as lambda
 } from 'aws-cdk-lib';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
-import {
-	addCloudWatchPermissions,
-	addS3Permissions,
-	addDynamoPermissions
-} from '../common/iam-helper';
+import stackUtils from '../stack-utils';
 import path = require('path');
 // todo: Change this to image saving stack. Change Lambda to be image saving lambda and use Step Functions for WorkFlow
 export class DataHandlerStack extends Stack {
-	public readonly imagesBucketName: string;
-	public readonly certificateDataTableName: string;
 	public readonly lambda: NodejsFunction;
 
 	constructor(scope: Construct, id: string, props?: StackProps) {
 		super(scope, id, props);
 
 		// S3
-		const imagesBucket = new s3.Bucket(this, 'ImagesBucket', {
-			bucketName: `${resourcePrefix}-certificate-images`,
+		const filesBucket = new s3.Bucket(this, 'FilesBucket', {
+			bucketName: `${resourcePrefix}-certificate-files`,
 			blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true
 		});
-		this.imagesBucketName = imagesBucket.bucketName;
 
 		// DynamoDB
 		var certificateDataTable = new dynamoDB.Table(this, 'CertificatesDataTable', {
@@ -50,16 +43,15 @@ export class DataHandlerStack extends Stack {
 			partitionKey: { name: 'id', type: dynamoDB.AttributeType.STRING },
 			removalPolicy: RemovalPolicy.DESTROY
 		});
-		this.certificateDataTableName = certificateDataTable.tableName;
 
 		// IAM
 		const dataHandlerLambdaRole = new iam.Role(this, 'DataHandlerLambdaRole', {
 			assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       roleName: `${resourcePrefix}-data-handler-lambda-role`
 		});
-		addCloudWatchPermissions(dataHandlerLambdaRole);
-		addS3Permissions(dataHandlerLambdaRole, imagesBucket.bucketArn, ['s3:GetObject', 's3:PutObject']);
-		addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem']);
+		stackUtils.iam.addCloudWatchPermissions(dataHandlerLambdaRole);
+		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, filesBucket.bucketArn, ['s3:GetObject', 's3:PutObject']);
+		stackUtils.iam.addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem']);
 
 		// Lambda
 		const saveDataLambda = new NodejsFunction(this, 'SaveCertDataLambda', {
@@ -71,7 +63,7 @@ export class DataHandlerStack extends Stack {
 			timeout: Duration.seconds(15),
 			role: dataHandlerLambdaRole,
 			environment: {
-				imageBuckerName: imagesBucket.bucketName,
+				imageBuckerName: filesBucket.bucketName,
 				certDataTableName: certificateDataTable.tableName,
 				lambdaCustomHeaderName,
 				lambdaCustomHeaderValue,
