@@ -1,6 +1,6 @@
-interface UploadedImage {
+export interface UploadedImage {
   filename: string,
-  content: Buffer,
+  content: Buffer | undefined,
   contentType: string
 }
 
@@ -8,7 +8,8 @@ export interface ParsedFormData {
   fields: {
     [key: string]: string
   }
-  files: UploadedImage[]
+  image: UploadedImage,
+	certId: string
 }
 
 export interface ResponseHeaders {

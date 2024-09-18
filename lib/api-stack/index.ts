@@ -16,7 +16,7 @@ import {
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 
 interface Props extends StackProps {
-	dataHandlerLambda: NodejsFunction
+	saveDataLambda: NodejsFunction
 }
 
 export class RestApiStack extends Stack {
@@ -37,6 +37,6 @@ export class RestApiStack extends Stack {
     }
     });
     const uploadDataResource = apiGateway.root.addResource('upload-data');
-    uploadDataResource.addMethod('POST', new LambdaIntegration(props.dataHandlerLambda));
+    uploadDataResource.addMethod('POST', new LambdaIntegration(props.saveDataLambda));
 	}
 }

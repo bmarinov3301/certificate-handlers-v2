@@ -59,11 +59,11 @@ export class DataHandlerStack extends Stack {
 		addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem']);
 
 		// Lambda
-		const dataHandlerLambda = new NodejsFunction(this, 'DataHandlerLambda', {
-			functionName: `${resourcePrefix}-data-handler-lambda`,
+		const saveDataLambda = new NodejsFunction(this, 'SaveCertDataLambda', {
+			functionName: `${resourcePrefix}-save-cert-data-lambda`,
 			runtime: lambda.Runtime.NODEJS_20_X,
 			handler: 'handler',
-			entry: path.join(__dirname, 'lambda-functions/data-handler-lambda.ts'),
+			entry: path.join(__dirname, 'lambda-functions/save-cert-data-lambda.ts'),
 			memorySize: 128,
 			timeout: Duration.seconds(10),
 			role: dataHandlerLambdaRole,
@@ -75,7 +75,7 @@ export class DataHandlerStack extends Stack {
 				allowedOrigin: restApiAllowedOrigins[0]
 			}
 		});
-		this.lambda = dataHandlerLambda;
+		this.lambda = saveDataLambda;
 	}
 }
 

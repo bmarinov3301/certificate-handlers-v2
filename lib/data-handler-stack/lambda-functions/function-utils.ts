@@ -29,15 +29,22 @@ export const buildResponseHeaders = (): ResponseHeaders => {
   }
 }
 
-export const parseFormData = (event: APIGatewayProxyEvent, contentType: string): Promise<ParsedFormData> => {
+export const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormData> => {
 	return new Promise((resolve, reject) => {
 		console.log(`Busboy starting...`);
+
+    const contentType = event.headers['Content-Type'] || event.headers['content-type'];
 		const bus = busboy({
 			headers: { 'content-type': contentType }
 		});
     const result: ParsedFormData = {
       fields: {},
-      files: []
+      image: {
+        filename: '',
+        content: undefined,
+        contentType: ''
+      },
+      certId: crypto.randomUUID()
     };
 
 		bus.on('field', (fieldname, value) => {
@@ -53,11 +60,11 @@ export const parseFormData = (event: APIGatewayProxyEvent, contentType: string):
         buffers.push(data);
       });
 			file.on('end', () => {
-				result.files.push({
+				result.image = {
           filename: filename,
           content: Buffer.concat(buffers),
           contentType: mimetype ?? 'image/png',
-        });
+        };
 			});
 			file.on('error', (err: any) => {
         reject(new Error(`Error while processing file: ${filename}. Error: ${err?.message}`));
@@ -78,11 +85,11 @@ export const parseFormData = (event: APIGatewayProxyEvent, contentType: string):
 	});
 }
 
-export const buildDynamoDocument = (data: ParsedFormData, certificateId: string, bucketName: string): CertificateData => {
+export const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: string, bucketName: string): CertificateData => {
   return {
     id: certificateId,
-    clientName: data.fields['clientName'],
-    heading: data.fields['heading'],
+    clientName: fields['clientName'],
+    heading: fields['heading'],
     imageLink: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`
   }
 }

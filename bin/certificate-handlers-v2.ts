@@ -7,5 +7,5 @@ import { RestApiStack } from '../lib/api-stack';
 const app = new cdk.App();
 const dataHandlerStack = new DataHandlerStack(app, 'DataHandlerStack', {});
 const apiGatewayStack = new RestApiStack(app, 'RestApiStack', {
-	dataHandlerLambda: dataHandlerStack.lambda
+	saveDataLambda: dataHandlerStack.lambda
 });

@@ -19,9 +19,12 @@ import {
 	buildResponseHeaders,
 	buildDynamoDocument
 } from './function-utils';
+import { UploadedImage } from '../types';
 
 const s3Client = new S3Client();
 const dynamoClient = new DynamoDBClient();
+const imageBucketName = env.imageBuckerName ?? '';
+const certDataTableName = env.certDataTableName ?? '';
 
 export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
 	try {
@@ -38,34 +41,16 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		}
 
 		// Parse event form data
-		const contentType = event.headers['Content-Type'] || event.headers['content-type'];
-		const formData = await parseFormData(event, contentType ?? '');
-		console.log('Parsed form data', JSON.stringify(formData));
+		const { image, fields, certId } = await parseFormData(event);
+		console.log('Parsed form data image', JSON.stringify(image));
+		console.log('Parsed form data fields', JSON.stringify(fields));
+		console.log('Parsed form data cert ID', JSON.stringify(certId));
 
-		// Save image from form data to S3 bucket
-		const certId = crypto.randomUUID();
-		const imageBucketName = env.imageBuckerName ?? '';
-		const s3Command = new PutObjectCommand({
-			Bucket: imageBucketName,
-			Key: `${certId}.png`,
-			Body: formData.files[0].content,
-			ContentType: formData.files[0].contentType
-		});
-
-		console.log(`Uploading image ${s3Command.input?.Key} to ${s3Command.input?.Bucket}...`);
-		await s3Client.send(s3Command);
+		// Save form data image to S3 bucket
+		await uploadImageToS3(certId, image);
 
 		// Save form data and S3 image link to DynamoDB
-		const certDataTableName = env.certDataTableName ?? '';
-		const document = buildDynamoDocument(formData, certId, imageBucketName);
-		const item = marshall(document);
-		const dynamoCommand = new PutItemCommand({
-			TableName: certDataTableName,
-			Item: item
-		});
-
-		console.log(`Storing item with ID ${document.id} in DynamoDB table ${certDataTableName}...`);
-		await dynamoClient.send(dynamoCommand);
+		await saveItemToDynamo(fields, certId);
 
 		return {
       statusCode: 200,
@@ -87,4 +72,26 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 	}
 }
 
+const uploadImageToS3 = async (certId: string, image: UploadedImage) => {
+	const s3Command = new PutObjectCommand({
+		Bucket: imageBucketName,
+		Key: `${certId}.png`,
+		Body: image.content,
+		ContentType: image.contentType
+	});
 
+	console.log(`Uploading image ${s3Command.input?.Key} to ${s3Command.input?.Bucket}...`);
+	await s3Client.send(s3Command);
+}
+
+const saveItemToDynamo = async (fields: { [key: string]: string }, certId: string) => {
+	const document = buildDynamoDocument(fields, certId, imageBucketName);
+	const item = marshall(document);
+	const dynamoCommand = new PutItemCommand({
+		TableName: certDataTableName,
+		Item: item
+	});
+
+	console.log(`Storing item with ID ${document.id} in DynamoDB table ${certDataTableName}...`);
+	await dynamoClient.send(dynamoCommand);
+}
