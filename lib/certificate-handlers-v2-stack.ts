@@ -5,7 +5,7 @@ import {
 	lambdaCustomHeaderValue,
 	restApiAllowedOrigins,
 	pdfTemplateFile,
-	pdfDataEndpoint,
+	certificatesPage,
 	userTimeZone
 } from './constants';
 import {
@@ -72,7 +72,7 @@ export class CertificateHandlersV2Stack extends Stack {
 				lambdaCustomHeaderValue,
 				allowedOrigin: restApiAllowedOrigins[0],
 				pdfTemplateFile: pdfTemplateFile,
-				pdfDataEndpoint: pdfDataEndpoint,
+				certificatesPage: certificatesPage,
 				userTimeZone: userTimeZone
 			}
 		});

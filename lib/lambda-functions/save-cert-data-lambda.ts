@@ -48,7 +48,8 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		return {
       statusCode: 200,
       body: JSON.stringify({
-				message: 'Success!'
+				certificateId: certId,
+				certificateLink: `https://${env.AWS_REGION}.console.aws.amazon.com/s3/object/${imageBucketName}?region=${env.AWS_REGION}&bucketType=general&prefix=certificates/${certId}.pdf`
 			}),
 			headers: functionUtils.buildResponseHeaders()
     };

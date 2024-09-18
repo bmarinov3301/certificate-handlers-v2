@@ -17,8 +17,8 @@ const streamToBuffer = async (stream: NodeJS.ReadableStream): Promise<Buffer> =>
 
 const fillInPdfFormData = async (stream: NodeJS.ReadableStream, certId: string) : Promise<Buffer> => {
 	const pdfBuffer = await streamToBuffer(stream);
-	const certificatesPageEndpoint = env.pdfDataEndpoint ?? '';
-	const qrCodeBuffer = await generateQRCode(`${certificatesPageEndpoint}?certId=${certId}`);
+	const certificatesPage = env.certificatesPage ?? '';
+	const qrCodeBuffer = await generateQRCode(`${certificatesPage}?certId=${certId}`);
 	
 	const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
 	const qrCodeImage = await pdfDoc.embedPng(qrCodeBuffer);
