@@ -20,5 +20,7 @@ export interface CertificateData {
 	id: string,
 	clientName: string,
 	heading: string,
-	imageLink: string
+	imageLink: string,
+	createdAtUserTime: string,
+	createdAtLocalTime: string
 }

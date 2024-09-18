@@ -3,6 +3,7 @@ import {
   APIGatewayProxyEventHeaders
 } from 'aws-lambda';
 import busboy from 'busboy';
+import moment from 'moment-timezone';
 import { env } from 'process';
 import {
   ResponseHeaders,
@@ -10,7 +11,7 @@ import {
   CertificateData
 } from '../types';
 
-export const isEventValid = (headers: APIGatewayProxyEventHeaders): boolean | undefined => {
+const isEventValid = (headers: APIGatewayProxyEventHeaders): boolean | undefined => {
 	console.log('Checking event header values...');
 	const customHeaderName = env.lambdaCustomHeaderName ?? 'HeaderNameNotExist';
 	const customHeaderValue = env.lambdaCustomHeaderValue ?? 'HeaderValueNotExist';
@@ -21,7 +22,7 @@ export const isEventValid = (headers: APIGatewayProxyEventHeaders): boolean | un
 	return contentType?.startsWith('multipart/form-data') && customHeader?.startsWith(customHeaderValue);
 }
 
-export const buildResponseHeaders = (): ResponseHeaders => {
+const buildResponseHeaders = (): ResponseHeaders => {
   return {
     'Access-Control-Allow-Origin': env.allowedOrigin ?? '',
     'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
@@ -29,7 +30,7 @@ export const buildResponseHeaders = (): ResponseHeaders => {
   }
 }
 
-export const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormData> => {
+const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormData> => {
 	return new Promise((resolve, reject) => {
 		console.log(`Busboy starting...`);
 
@@ -85,11 +86,25 @@ export const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormDa
 	});
 }
 
-export const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: string, bucketName: string): CertificateData => {
+const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: string, bucketName: string): CertificateData => {
+  const userTimeZone = env.userTimeZone ?? '';
+  const userTime = moment.tz(userTimeZone).format();
+  const localTime = moment().format();
+
   return {
     id: certificateId,
     clientName: fields['clientName'],
     heading: fields['heading'],
-    imageLink: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`
+    imageLink: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`,
+    createdAtUserTime: userTime,
+    createdAtLocalTime: localTime
   }
 }
+
+const functionUtils = {
+  isEventValid,
+  buildResponseHeaders,
+  parseFormData,
+  buildDynamoDocument
+}
+export default functionUtils;

@@ -3,7 +3,10 @@ import {
 	resourcePrefix,
 	lambdaCustomHeaderName,
 	lambdaCustomHeaderValue,
-	restApiAllowedOrigins
+	restApiAllowedOrigins,
+	pdfTemplateFile,
+	pdfDataEndpoint,
+	userTimeZone
 } from '../constants';
 import {
 	Stack,
@@ -64,18 +67,20 @@ export class DataHandlerStack extends Stack {
 			runtime: lambda.Runtime.NODEJS_20_X,
 			handler: 'handler',
 			entry: path.join(__dirname, 'lambda-functions/save-cert-data-lambda.ts'),
-			memorySize: 128,
-			timeout: Duration.seconds(10),
+			memorySize: 256,
+			timeout: Duration.seconds(15),
 			role: dataHandlerLambdaRole,
 			environment: {
 				imageBuckerName: imagesBucket.bucketName,
 				certDataTableName: certificateDataTable.tableName,
 				lambdaCustomHeaderName,
 				lambdaCustomHeaderValue,
-				allowedOrigin: restApiAllowedOrigins[0]
+				allowedOrigin: restApiAllowedOrigins[0],
+				pdfTemplateFile: pdfTemplateFile,
+				pdfDataEndpoint: pdfDataEndpoint,
+				userTimeZone: userTimeZone
 			}
 		});
 		this.lambda = saveDataLambda;
 	}
 }
-
