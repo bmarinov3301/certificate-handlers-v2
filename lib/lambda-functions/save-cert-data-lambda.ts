@@ -9,6 +9,7 @@ import functionUtils from './utils/function-utils';
 import s3Utils from './utils/s3-utils';
 import pdfUtils from './utils/pdf-utils';
 import dynamoUtil from './utils/dynamo-util';
+import { certificatesPage } from '../constants';
 
 const imageBucketName = env.imageBuckerName ?? '';
 const certDataTableName = env.certDataTableName ?? '';
@@ -48,7 +49,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		return {
       statusCode: 200,
       body: JSON.stringify({
-				certificateId: certId,
+				certificatePage: `${certificatesPage}?certId=${certId}`,
 				certificateLink: `https://${env.AWS_REGION}.console.aws.amazon.com/s3/object/${imageBucketName}?region=${env.AWS_REGION}&bucketType=general&prefix=certificates/${certId}.pdf`
 			}),
 			headers: functionUtils.buildResponseHeaders()
