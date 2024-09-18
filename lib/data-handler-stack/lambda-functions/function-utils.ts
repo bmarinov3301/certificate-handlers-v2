@@ -4,23 +4,11 @@ import {
 } from 'aws-lambda';
 import busboy from 'busboy';
 import { env } from 'process';
-
-interface UploadedImage {
-  filename: string,
-  content: Buffer,
-  contentType: string
-}
-
-interface ParsedFormData {
-  fields: {
-    [key: string]: string
-  }
-  files: UploadedImage[]
-}
-
-interface ResponseHeaders {
-    [header: string]: string | number | boolean
-}
+import {
+  ResponseHeaders,
+  ParsedFormData,
+  CertificateData
+} from '../types';
 
 export const isEventValid = (headers: APIGatewayProxyEventHeaders): boolean | undefined => {
 	console.log('Checking event header values...');
@@ -88,4 +76,13 @@ export const parseFormData = (event: APIGatewayProxyEvent, contentType: string):
     bus.write(event.body, event.isBase64Encoded ? 'base64' : 'binary');
     bus.end();
 	});
+}
+
+export const buildDynamoDocument = (data: ParsedFormData, certificateId: string, bucketName: string): CertificateData => {
+  return {
+    id: certificateId,
+    clientName: data.fields['clientName'],
+    heading: data.fields['heading'],
+    imageLink: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`
+  }
 }

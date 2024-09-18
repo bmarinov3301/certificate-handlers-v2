@@ -56,7 +56,7 @@ export class DataHandlerStack extends Stack {
 		});
 		addCloudWatchPermissions(dataHandlerLambdaRole);
 		addS3Permissions(dataHandlerLambdaRole, imagesBucket.bucketArn, ['s3:GetObject', 's3:PutObject']);
-		addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:PutItem']);
+		addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem']);
 
 		// Lambda
 		const dataHandlerLambda = new NodejsFunction(this, 'DataHandlerLambda', {
@@ -69,6 +69,7 @@ export class DataHandlerStack extends Stack {
 			role: dataHandlerLambdaRole,
 			environment: {
 				imageBuckerName: imagesBucket.bucketName,
+				certDataTableName: certificateDataTable.tableName,
 				lambdaCustomHeaderName,
 				lambdaCustomHeaderValue,
 				allowedOrigin: restApiAllowedOrigins[0]
