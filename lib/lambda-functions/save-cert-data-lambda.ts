@@ -43,7 +43,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 
 		// Retrieve PDF template
 		const response = await s3Utils.getObject(imageBucketName, `template/${pdfTemplate}`);
-		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, certId);
+		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, certId, fields);
 		await s3Utils.uploadObject(imageBucketName, `certificates/${certId}.pdf`, modifiedPDF, 'application/pdf');
 
 		return {
