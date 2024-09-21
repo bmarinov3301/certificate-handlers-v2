@@ -1,7 +1,4 @@
-import {
-  APIGatewayProxyEvent,
-  APIGatewayProxyEventHeaders
-} from 'aws-lambda';
+import { APIGatewayProxyEvent } from 'aws-lambda';
 import busboy from 'busboy';
 import moment from 'moment-timezone';
 import { env } from 'process';
@@ -11,15 +8,17 @@ import {
   CertificateData
 } from '../../types';
 
-const isEventValid = (headers: APIGatewayProxyEventHeaders): boolean | undefined => {
+const customHeaderName = env.lambdaCustomHeaderName ?? 'HeaderNameNotExist';
+const customHeaderValue = env.lambdaCustomHeaderValue ?? 'HeaderValueNotExist';
+
+const isEventValid = (event: APIGatewayProxyEvent): boolean | undefined => {
 	console.log('Checking event header values...');
-	const customHeaderName = env.lambdaCustomHeaderName ?? 'HeaderNameNotExist';
-	const customHeaderValue = env.lambdaCustomHeaderValue ?? 'HeaderValueNotExist';
 
-	const contentType = headers['Content-Type'] || headers['content-type'];
-	const customHeader = headers[customHeaderName];
+	const contentType = event.headers['Content-Type'] || event.headers['content-type'];
+	const customHeader = event.headers[customHeaderName];
+  const headersValid = contentType?.startsWith('multipart/form-data') && customHeader?.startsWith(customHeaderValue);
 
-	return contentType?.startsWith('multipart/form-data') && customHeader?.startsWith(customHeaderValue);
+  return headersValid;
 }
 
 const buildResponseHeaders = (): ResponseHeaders => {
@@ -93,11 +92,10 @@ const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: s
 
   return {
     id: certificateId,
-    clientName: fields['clientName'],
-    heading: fields['heading'],
     imageLink: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`,
     createdAtUserTime: userTime,
-    createdAtLocalTime: localTime
+    createdAtLocalTime: localTime,
+    ...fields
   }
 }
 

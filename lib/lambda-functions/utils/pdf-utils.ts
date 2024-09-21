@@ -3,6 +3,9 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import { env } from 'process';
 import moment from 'moment';
 
+const userTimeZone = env.userTimeZone ?? '';
+const certificatesPage = env.certificatesPage ?? '';
+
 const generateQRCode = async (url: string) : Promise<Buffer> => {
 	return QRCode.toBuffer(url);
 }
@@ -18,25 +21,16 @@ const streamToBuffer = async (stream: NodeJS.ReadableStream): Promise<Buffer> =>
 
 const fillInPdfFormData = async (stream: NodeJS.ReadableStream, certId: string, fields: { [key: string]: string }) : Promise<Buffer> => {
 	const pdfBuffer = await streamToBuffer(stream);
-	const certificatesPage = env.certificatesPage ?? '';
 	const qrCodeBuffer = await generateQRCode(`${certificatesPage}?certId=${certId}`);
 	
 	const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
 	const qrCodeImage = await pdfDoc.embedPng(qrCodeBuffer);
-	// const [page] = pdfDoc.getPages();
-	// page.drawImage(qrCodeImage, {
-	// 	x: 78,
-	// 	y: 868,
-	// 	width: 100,
-	// 	height: 100
-	// });
-
 	const page = pdfDoc.getPage(0);
+
+	// Add QR Code
 	const { width, height } = page.getSize();
 	const qrSize = 115;
-	console.log(`XPos -> ${width}(width) - ${qrSize}(qrSize) - 50`);
 	const xPos = 80;
-	console.log(`YPos -> ${height}(height) - ${qrSize}(qrSize) - 50`);
 	const yPos = height - 180;
 	page.drawImage(qrCodeImage, {
 		x: xPos,
@@ -44,19 +38,22 @@ const fillInPdfFormData = async (stream: NodeJS.ReadableStream, certId: string, 
 		width: qrSize,
 		height: qrSize
 	});
+
+	// Set form field data
 	const form = pdfDoc.getForm();
 	const dateField = form.getTextField('date-placeholder');
-	const userTimeZone = env.userTimeZone ?? '';
-	page.drawText(moment.tz(userTimeZone).format('ll'), {
-		x: 77,
-		y: 813,
-		size: 10,
-		color: rgb(74, 75, 76)
-	});
-  // dateField.setText(moment.tz(userTimeZone).format('ll'));
+	dateField.setText(moment.tz(userTimeZone).format('ll'));
+
 	const clientNameField = form.getTextField('client-name-placeholder');
 	clientNameField.setText(`To: ${fields['clientName']}`);
 
+	const certIdPlaceholder = form.getTextField('certificate-num-placeholder');
+	certIdPlaceholder.setText(certId);
+
+	const headingPlaceholder = form.getTextField('heading-placeholder');
+	headingPlaceholder.setText(fields['heading']);
+
+	form.flatten();
 	const pdfBytes = await pdfDoc.save();
 	return Buffer.from(pdfBytes);
 }

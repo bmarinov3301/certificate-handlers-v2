@@ -19,10 +19,9 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 	try {
 		console.log(`Received event with body: ${JSON.stringify(event.body)}`);
 
-		const eventValid = functionUtils.isEventValid(event.headers);
+		const eventValid = functionUtils.isEventValid(event);
 		if (!eventValid) {
 			console.log(`Event not valid! Event headers - ${JSON.stringify(event.headers)}`);
-	
 			return {
 				statusCode: 400,
 				body: `Something went wrong`
@@ -31,6 +30,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 
 		// Parse event form data
 		const { image, fields, certId } = await functionUtils.parseFormData(event);
+
 		console.log('Parsed form data image', JSON.stringify(image));
 		console.log('Parsed form data fields', JSON.stringify(fields));
 		console.log('Parsed form data cert ID', JSON.stringify(certId));
