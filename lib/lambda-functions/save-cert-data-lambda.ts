@@ -44,13 +44,13 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		// Retrieve PDF template
 		const response = await s3Utils.getObject(imageBucketName, `template/${pdfTemplate}`);
 		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, certId, fields, image);
-		await s3Utils.uploadObject(imageBucketName, `certificates/${certId}.pdf`, modifiedPDF, 'application/pdf');
+		// await s3Utils.uploadObject(imageBucketName, `certificates/${certId}.pdf`, modifiedPDF, 'application/pdf');
 
 		return {
       statusCode: 200,
       body: JSON.stringify({
 				certificatePage: `${certificatesPage}?certId=${certId}`,
-				certificateLink: `https://${env.AWS_REGION}.console.aws.amazon.com/s3/object/${imageBucketName}?region=${env.AWS_REGION}&bucketType=general&prefix=certificates/${certId}.pdf`
+				pdfData: modifiedPDF.toString('base64')
 			}),
 			headers: functionUtils.buildResponseHeaders()
     };
