@@ -59,6 +59,9 @@ const fillInPdfFormData = async (
 	const headingPlaceholder = form.getTextField('heading-placeholder');
 	headingPlaceholder.setText(fields['heading']);
 
+	const outcomePlaceholder = form.getTextField('outcome-placeholder');
+	outcomePlaceholder.setText(fields['outcome'] == 'true' ? 'AUTHENTIC' : 'NOT AUTHENTIC');
+
 	if(fields['details']) {
 		let detailsText = '';
 		const details: Detail[] = JSON.parse(fields['details']);

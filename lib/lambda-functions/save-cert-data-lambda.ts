@@ -31,7 +31,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		console.log('Parsed form data image', JSON.stringify(image));
 		console.log('Parsed form data fields', JSON.stringify(fields));
 		console.log('Parsed form data cert ID', JSON.stringify(certId));
-		if (!fields['file'] || !fields['clientName'] || !fields['heading'] || !fields['details'].length) {
+		if (!image || !fields['clientName'] || !fields['heading'] || !fields['details']) {
 			return functionUtils.buildResponse({ message: 'Could not parse data' }, 400);
 		}
 
@@ -42,7 +42,9 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		await saveItemToDynamo(fields, certId);
 
 		// Retrieve PDF template
-		const response = await s3Utils.getObject(imageBucketName, `template/${pdfTemplate}`);
+		console.log(fields['outcome']);
+		const templateSuffix = fields['outcome'] == 'true' ? 'authentic' : 'not-authentic';
+		const response = await s3Utils.getObject(imageBucketName, `template/${pdfTemplate}-${templateSuffix}.pdf`);
 		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, certId, fields, image);
 		// await s3Utils.uploadObject(imageBucketName, `certificates/${certId}.pdf`, modifiedPDF, 'application/pdf');
 
