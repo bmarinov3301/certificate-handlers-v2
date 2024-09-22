@@ -23,3 +23,8 @@ export interface CertificateData {
 	createdAtLocalTime: string,
   [key: string]: string;
 }
+
+export interface Detail {
+  detailName: string,
+  detailValue: string
+}

@@ -63,7 +63,7 @@ export class CertificateHandlersV2Stack extends Stack {
 			handler: 'handler',
 			entry: path.join(__dirname, 'lambda-functions/save-cert-data-lambda.ts'),
 			memorySize: 256,
-			timeout: Duration.seconds(15),
+			timeout: Duration.seconds(30),
 			role: dataHandlerLambdaRole,
 			environment: {
 				imageBuckerName: filesBucket.bucketName,
