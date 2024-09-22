@@ -34,6 +34,15 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		console.log('Parsed form data image', JSON.stringify(image));
 		console.log('Parsed form data fields', JSON.stringify(fields));
 		console.log('Parsed form data cert ID', JSON.stringify(certId));
+		if (!fields['file'] || !fields['clientName'] || !fields['heading'] || !fields['details'].length) {
+			return {
+				statusCode: 400,
+				body: JSON.stringify({
+					message: 'Could not parse data'
+				}),
+				headers: functionUtils.buildResponseHeaders()
+			}
+		}
 
 		// Save form data image to S3 bucket
 		await s3Utils.uploadObject(imageBucketName, `images/${certId}.png`, image.content, image.contentType);
