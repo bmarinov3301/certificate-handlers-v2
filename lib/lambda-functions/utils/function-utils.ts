@@ -11,6 +11,22 @@ import {
 const customHeaderName = env.lambdaCustomHeaderName ?? 'HeaderNameNotExist';
 const customHeaderValue = env.lambdaCustomHeaderValue ?? 'HeaderValueNotExist';
 
+const buildResponseHeaders = (): ResponseHeaders => {
+  return {
+    'Access-Control-Allow-Origin': env.allowedOrigin ?? '',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+    'Access-Control-Allow-Headers': `Content-Type, ${env.lambdaCustomHeaderName}`
+  }
+}
+
+const buildResponse = (data: any, statusCode: number): APIGatewayProxyResult => {
+  return {
+    statusCode: statusCode,
+    body: JSON.stringify(data),
+    headers: functionUtils.buildResponseHeaders()
+  }
+}
+
 const isEventValid = (event: APIGatewayProxyEvent): boolean | undefined => {
 	console.log('Checking event header values...');
 
@@ -19,14 +35,6 @@ const isEventValid = (event: APIGatewayProxyEvent): boolean | undefined => {
   const headersValid = contentType?.startsWith('multipart/form-data') && customHeader?.startsWith(customHeaderValue);
 
   return headersValid;
-}
-
-const buildResponseHeaders = (): ResponseHeaders => {
-  return {
-    'Access-Control-Allow-Origin': env.allowedOrigin ?? '',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-    'Access-Control-Allow-Headers': `Content-Type, ${env.lambdaCustomHeaderName}`
-  }
 }
 
 const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormData> => {
@@ -100,8 +108,9 @@ const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: s
 }
 
 const functionUtils = {
-  isEventValid,
   buildResponseHeaders,
+  buildResponse,
+  isEventValid,
   parseFormData,
   buildDynamoDocument
 }

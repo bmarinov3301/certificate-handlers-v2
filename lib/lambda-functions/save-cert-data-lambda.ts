@@ -22,10 +22,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		const eventValid = functionUtils.isEventValid(event);
 		if (!eventValid) {
 			console.log(`Event not valid! Event headers - ${JSON.stringify(event.headers)}`);
-			return {
-				statusCode: 400,
-				body: `Something went wrong`
-			}
+			return functionUtils.buildResponse({ message: 'Event not valid' }, 400);
 		}
 
 		// Parse event form data
@@ -35,13 +32,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		console.log('Parsed form data fields', JSON.stringify(fields));
 		console.log('Parsed form data cert ID', JSON.stringify(certId));
 		if (!fields['file'] || !fields['clientName'] || !fields['heading'] || !fields['details'].length) {
-			return {
-				statusCode: 400,
-				body: JSON.stringify({
-					message: 'Could not parse data'
-				}),
-				headers: functionUtils.buildResponseHeaders()
-			}
+			return functionUtils.buildResponse({ message: 'Could not parse data' }, 400);
 		}
 
 		// Save form data image to S3 bucket
@@ -55,24 +46,14 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, certId, fields, image);
 		// await s3Utils.uploadObject(imageBucketName, `certificates/${certId}.pdf`, modifiedPDF, 'application/pdf');
 
-		return {
-      statusCode: 200,
-      body: JSON.stringify({
-				certificatePage: `${certificatesPage}?certId=${certId}`,
-				pdfData: modifiedPDF.toString('base64')
-			}),
-			headers: functionUtils.buildResponseHeaders()
-    };
+		return functionUtils.buildResponse({
+			certificatePage: `${certificatesPage}?certId=${certId}`,
+			pdfData: modifiedPDF.toString('base64')
+		}, 200);
 	}
 	catch (error: any) {
 		console.error('Error processing upload:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-				error: JSON.stringify(error)
-			}),
-			headers: functionUtils.buildResponseHeaders()
-    };
+		return functionUtils.buildResponse({ error: JSON.stringify(error) }, 500);
 	}
 }
 
