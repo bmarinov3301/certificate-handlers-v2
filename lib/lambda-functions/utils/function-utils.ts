@@ -13,6 +13,7 @@ import {
 
 const customHeaderName = env.lambdaCustomHeaderName ?? 'HeaderNameNotExist';
 const customHeaderValue = env.lambdaCustomHeaderValue ?? 'HeaderValueNotExist';
+const userTimeZone = env.userTimeZone ?? '';
 
 const buildResponseHeaders = (): ResponseHeaders => {
   return {
@@ -97,15 +98,16 @@ const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormData> => 
 }
 
 const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: string, bucketName: string): CertificateData => {
-  const userTimeZone = env.userTimeZone ?? '';
   const userTime = moment.tz(userTimeZone).format();
   const localTime = moment().format();
+  const displayedDate = moment.tz(userTimeZone).format('ll');
 
   return {
     id: certificateId,
     imageLink: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`,
     createdAtUserTime: userTime,
     createdAtLocalTime: localTime,
+    displayedDate,
     ...fields
   }
 }

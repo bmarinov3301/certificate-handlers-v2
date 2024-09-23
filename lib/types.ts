@@ -21,6 +21,7 @@ export interface CertificateData {
 	imageLink: string,
 	createdAtUserTime: string,
 	createdAtLocalTime: string,
+  displayedDate: string,
   [key: string]: string;
 }
 
