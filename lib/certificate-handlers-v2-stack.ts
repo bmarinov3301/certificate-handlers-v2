@@ -32,10 +32,24 @@ export class CertificateHandlersV2Stack extends Stack {
 		super(scope, id, props);
 
 		// S3
-		const filesBucket = new s3.Bucket(this, 'FilesBucket', {
-			bucketName: `${resourcePrefix}-certificate-files`,
+		const templatesBucket = new s3.Bucket(this, 'TemplatesBucket', {
+			bucketName: `${resourcePrefix}-pdf-templates`,
 			blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true
+		});
+
+		const staticFilesBucket = new s3.Bucket(this, 'ImagesBucket', {
+			bucketName: `${resourcePrefix}-static-images`,
+			publicReadAccess: true,
+			blockPublicAccess: {
+				blockPublicAcls: false,
+				blockPublicPolicy: false,
+				ignorePublicAcls: false,
+				restrictPublicBuckets: false
+			},
+			encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true
 		});
@@ -53,7 +67,8 @@ export class CertificateHandlersV2Stack extends Stack {
       roleName: `${resourcePrefix}-data-handler-lambda-role`
 		});
 		stackUtils.iam.addCloudWatchPermissions(dataHandlerLambdaRole);
-		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, filesBucket.bucketArn, ['s3:GetObject', 's3:PutObject']);
+		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, staticFilesBucket.bucketArn, ['s3:PutObject']);
+		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, templatesBucket.bucketArn, ['s3:GetObject']);
 		stackUtils.iam.addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem']);
 
 		// Lambda
@@ -66,7 +81,8 @@ export class CertificateHandlersV2Stack extends Stack {
 			timeout: Duration.seconds(30),
 			role: dataHandlerLambdaRole,
 			environment: {
-				imageBuckerName: filesBucket.bucketName,
+				templatesBucket: templatesBucket.bucketName,
+				imagesBucket: staticFilesBucket.bucketName,
 				certDataTableName: certificateDataTable.tableName,
 				lambdaCustomHeaderName,
 				lambdaCustomHeaderValue,
@@ -86,6 +102,7 @@ export class CertificateHandlersV2Stack extends Stack {
 			timeout: Duration.seconds(10),
 			role: dataHandlerLambdaRole,
 			environment: {
+				imagesBucket: staticFilesBucket.bucketName,
 				certDataTableName: certificateDataTable.tableName,
 				lambdaCustomHeaderName,
 				allowedOrigin: restApiAllowedOrigins[0],

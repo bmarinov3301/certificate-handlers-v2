@@ -11,7 +11,8 @@ import pdfUtils from './utils/pdf-utils';
 import dynamoUtil from './utils/dynamo-util';
 import { certificatesPage } from '../constants';
 
-const imageBucketName = env.imageBuckerName ?? '';
+const templatesBucketName = env.templatesBucket ?? '';
+const imagesBucketName = env.imagesBucket ?? '';
 const certDataTableName = env.certDataTableName ?? '';
 const pdfTemplate = env.pdfTemplateFile ?? '';
 
@@ -36,7 +37,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		}
 
 		// Save form data image to S3 bucket
-		await s3Utils.uploadObject(imageBucketName, `images/${certId}.png`, image.content, image.contentType);
+		await s3Utils.uploadObject(imagesBucketName, `${certId}.png`, image.content, image.contentType);
 
 		// Save form data and S3 image link to DynamoDB
 		await saveItemToDynamo(fields, certId);
@@ -44,7 +45,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		// Retrieve PDF template
 		console.log(fields['outcome']);
 		const templateSuffix = fields['outcome'] == 'true' ? 'authentic' : 'not-authentic';
-		const response = await s3Utils.getObject(imageBucketName, `template/${pdfTemplate}-${templateSuffix}.pdf`);
+		const response = await s3Utils.getObject(templatesBucketName, `${pdfTemplate}-${templateSuffix}.pdf`);
 		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, certId, fields, image);
 		// await s3Utils.uploadObject(imageBucketName, `certificates/${certId}.pdf`, modifiedPDF, 'application/pdf');
 
@@ -60,7 +61,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 }
 
 const saveItemToDynamo = async (fields: { [key: string]: string }, certId: string): Promise<void> => {
-	const document = functionUtils.buildDynamoDocument(fields, certId, imageBucketName);
+	const document = functionUtils.buildDynamoDocument(fields, certId, imagesBucketName);
 	const item = marshall(document);
 
 	await dynamoUtil.uploadItem(certDataTableName, item);
