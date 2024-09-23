@@ -1,5 +1,5 @@
 import * as QRCode from 'qrcode'
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument } from 'pdf-lib';
 import { env } from 'process';
 import moment from 'moment';
 import { Detail, UploadedImage } from '../../types';
@@ -74,9 +74,7 @@ const fillInPdfFormData = async (
 	}
 
 	if (image.content) {
-		// const placeholderWidth = 507;
 		const placeholderWidth = 538;
-		// const placeholderX = 100;
 		const pdfImage = await pdfDoc.embedPng(image.content);
 		const { width: imageWidth, height: imageHeight } = pdfImage.scale(1);
 
@@ -88,7 +86,7 @@ const fillInPdfFormData = async (
 			scaledWidth = imageWidth * scaleFactor;
 			scaledHeight = imageHeight * scaleFactor;
 		}
-		// const centeredX = placeholderX + (placeholderWidth - scaledWidth) / 2;
+
 		const centeredX = (pageWidth - scaledWidth) / 2;
 
 		page.drawImage(pdfImage, {

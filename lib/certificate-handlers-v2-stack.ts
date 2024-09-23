@@ -71,9 +71,24 @@ export class CertificateHandlersV2Stack extends Stack {
 				lambdaCustomHeaderName,
 				lambdaCustomHeaderValue,
 				allowedOrigin: restApiAllowedOrigins[0],
-				pdfTemplateFile: pdfTemplateFile,
-				certificatesPage: certificatesPage,
-				userTimeZone: userTimeZone
+				pdfTemplateFile,
+				certificatesPage,
+				userTimeZone
+			}
+		});
+
+		const getDataLambda = new NodejsFunction(this, 'GetCertDataLambda', {
+			functionName: `${resourcePrefix}-get-cert-data-lambda`,
+			runtime: lambda.Runtime.NODEJS_20_X,
+			handler: 'handler',
+			entry: path.join(__dirname, 'lambda-functions/get-cert-data-lambda.ts'),
+			memorySize: 128,
+			timeout: Duration.seconds(10),
+			role: dataHandlerLambdaRole,
+			environment: {
+				certDataTableName: certificateDataTable.tableName,
+				lambdaCustomHeaderName,
+				allowedOrigin: restApiAllowedOrigins[0],
 			}
 		});
 
@@ -89,5 +104,8 @@ export class CertificateHandlersV2Stack extends Stack {
     });
     const uploadDataResource = apiGateway.root.addResource('upload-data');
     uploadDataResource.addMethod('POST', new LambdaIntegration(saveDataLambda));
+
+		const getDataResource = apiGateway.root.addResource('get-data');
+		getDataResource.addMethod('GET', new LambdaIntegration(getDataLambda));
 	}
 }
