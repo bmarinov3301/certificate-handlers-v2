@@ -1,4 +1,7 @@
-import { APIGatewayProxyEvent } from 'aws-lambda';
+import {
+  APIGatewayProxyEvent,
+  APIGatewayProxyResult
+} from 'aws-lambda';
 import busboy from 'busboy';
 import moment from 'moment-timezone';
 import { env } from 'process';

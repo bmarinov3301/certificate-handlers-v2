@@ -30,7 +30,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		}
 		const item = unmarshall(response.Item);
 		console.log('Item - ', item);
-		return functionUtils.buildResponse({ message: 'Success' }, 200);
+		return functionUtils.buildResponse({ data: item }, 200);
 	}
 	catch (error: any) {
 		console.log('Error while getting data', error);
