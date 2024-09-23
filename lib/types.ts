@@ -18,10 +18,10 @@ export interface ResponseHeaders {
 
 export interface CertificateData {
 	id: string,
-	imageLink: string,
+	imageUrl: string,
 	createdAtUserTime: string,
 	createdAtLocalTime: string,
-  displayedDate: string,
+  displayDate: string,
   [key: string]: string;
 }
 

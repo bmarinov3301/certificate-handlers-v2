@@ -100,14 +100,14 @@ const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormData> => 
 const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: string, bucketName: string): CertificateData => {
   const userTime = moment.tz(userTimeZone).format();
   const localTime = moment().format();
-  const displayedDate = moment.tz(userTimeZone).format('ll');
+  const displayDate = moment.tz(userTimeZone).format('ll');
 
   return {
     id: certificateId,
-    imageLink: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`,
+    imageUrl: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`,
     createdAtUserTime: userTime,
     createdAtLocalTime: localTime,
-    displayedDate,
+    displayDate,
     ...fields
   }
 }
