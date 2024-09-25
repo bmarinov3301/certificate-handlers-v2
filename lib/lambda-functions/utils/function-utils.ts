@@ -5,6 +5,7 @@ import {
 import busboy from 'busboy';
 import moment from 'moment-timezone';
 import { env } from 'process';
+import * as QRCode from 'qrcode';
 import {
   ResponseHeaders,
   ParsedFormData,
@@ -39,6 +40,10 @@ const isEventValid = (event: APIGatewayProxyEvent): boolean | undefined => {
   const headersValid = contentType?.startsWith('multipart/form-data') && customHeader?.startsWith(customHeaderValue);
 
   return headersValid;
+}
+
+const generateQRCode = async (url: string) : Promise<Buffer> => {
+	return QRCode.toBuffer(url);
 }
 
 const parseFormData = (event: APIGatewayProxyEvent): Promise<ParsedFormData> => {
@@ -105,6 +110,7 @@ const buildDynamoDocument = (fields: { [key: string]: string }, certificateId: s
   return {
     id: certificateId,
     imageUrl: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}.png`,
+    qrCodeUrl: `https://${bucketName}.s3.${env.AWS_REGION}.amazonaws.com/${certificateId}-qr-code.png`,
     createdAtUserTime: userTime,
     createdAtLocalTime: localTime,
     displayDate,
@@ -117,6 +123,7 @@ const functionUtils = {
   buildResponse,
   isEventValid,
   parseFormData,
-  buildDynamoDocument
+  buildDynamoDocument,
+  generateQRCode
 }
 export default functionUtils;

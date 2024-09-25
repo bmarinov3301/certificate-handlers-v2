@@ -9,12 +9,12 @@ import functionUtils from './utils/function-utils';
 import s3Utils from './utils/s3-utils';
 import pdfUtils from './utils/pdf-utils';
 import dynamoUtil from './utils/dynamo-util';
-import { certificatesPage } from '../constants';
 
 const templatesBucketName = env.templatesBucket ?? '';
 const imagesBucketName = env.imagesBucket ?? '';
 const certDataTableName = env.certDataTableName ?? '';
 const pdfTemplate = env.pdfTemplateFile ?? '';
+const certificatesPage = env.certificatesPage ?? '';
 
 export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
 	try {
@@ -36,8 +36,12 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 			return functionUtils.buildResponse({ message: 'Could not parse data' }, 400);
 		}
 
+		const qrCodeBuffer = await functionUtils.generateQRCode(`${certificatesPage}?certId=${certId}`);
+
 		// Save form data image to S3 bucket
 		await s3Utils.uploadObject(imagesBucketName, `${certId}.png`, image.content, image.contentType);
+		// todo: can you extract object URL from response ?
+		await s3Utils.uploadObject(imagesBucketName, `${certId}-qr-code.png`, qrCodeBuffer, 'image/png');
 
 		// Save form data and S3 image link to DynamoDB
 		await saveItemToDynamo(fields, certId);
@@ -46,8 +50,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		console.log(fields['outcome']);
 		const templateSuffix = fields['outcome'] == 'true' ? 'authentic' : 'not-authentic';
 		const response = await s3Utils.getObject(templatesBucketName, `${pdfTemplate}-${templateSuffix}.pdf`);
-		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, certId, fields, image);
-		// await s3Utils.uploadObject(imageBucketName, `certificates/${certId}.pdf`, modifiedPDF, 'application/pdf');
+		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, qrCodeBuffer, certId, fields, image);
 
 		return functionUtils.buildResponse({
 			certificatePage: `${certificatesPage}?certId=${certId}`,

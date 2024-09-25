@@ -15,7 +15,7 @@ const uploadObject = async (bucketName: string, key: string, buffer: Buffer | un
 		ContentType: contentType
 	});
 
-	console.log(`Uploading image ${s3Command.input?.Key} to ${s3Command.input?.Bucket}...`);
+	console.log(`Uploading image ${s3Command.input?.Key} with content type ${contentType} to ${s3Command.input?.Bucket}...`);
 	await s3Client.send(s3Command);
 }
 

@@ -1,15 +1,9 @@
-import * as QRCode from 'qrcode'
 import { PDFDocument } from 'pdf-lib';
 import { env } from 'process';
 import moment from 'moment';
 import { Detail, UploadedImage } from '../../types';
 
 const userTimeZone = env.userTimeZone ?? '';
-const certificatesPage = env.certificatesPage ?? '';
-
-const generateQRCode = async (url: string) : Promise<Buffer> => {
-	return QRCode.toBuffer(url);
-}
 
 const streamToBuffer = async (stream: NodeJS.ReadableStream): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
@@ -22,13 +16,13 @@ const streamToBuffer = async (stream: NodeJS.ReadableStream): Promise<Buffer> =>
 
 const fillInPdfFormData = async (
 	stream: NodeJS.ReadableStream,
+	qrCodeBuffer: Buffer,
 	certId: string,
 	fields: { [key: string]: string },
 	image: UploadedImage
 ) : Promise<Buffer> => {
 	const pdfBuffer = await streamToBuffer(stream);
-	const qrCodeBuffer = await generateQRCode(`${certificatesPage}?certId=${certId}`);
-	
+
 	const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
 	const qrCodeImage = await pdfDoc.embedPng(qrCodeBuffer);
 	const page = pdfDoc.getPage(0);
