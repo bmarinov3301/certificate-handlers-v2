@@ -8,7 +8,7 @@ import { env } from 'process';
 import functionUtils from './utils/function-utils';
 import s3Utils from './utils/s3-utils';
 import pdfUtils from './utils/pdf-utils';
-import dynamoUtil from './utils/dynamo-util';
+import dynamoUtil from './utils/dynamo-utils';
 
 const templatesBucketName = env.templatesBucket ?? '';
 const imagesBucketName = env.imagesBucket ?? '';
@@ -19,11 +19,14 @@ const certificatesPage = env.certificatesPage ?? '';
 export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
 	try {
 		console.log(`Received event with body: ${JSON.stringify(event.body)}`);
+		const contentType = event.headers['Content-Type'] || event.headers['content-type'];
 
-		const eventValid = functionUtils.isEventValid(event);
-		if (!eventValid) {
-			console.log(`Event not valid! Event headers - ${JSON.stringify(event.headers)}`);
-			return functionUtils.buildResponse({ message: 'Event not valid' }, 400);
+		if (!functionUtils.isEventValid(event) || !contentType?.startsWith('multipart/form-data')) {
+			console.log(`Event not valid! Event data - ${JSON.stringify({
+				body: event.body,
+				headers: event.headers
+			})}`);
+			return functionUtils.buildResponse({ error: 'Event not valid' }, 400);
 		}
 
 		// Parse event form data
@@ -33,7 +36,7 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 		console.log('Parsed form data fields', JSON.stringify(fields));
 		console.log('Parsed form data cert ID', JSON.stringify(certId));
 		if (!image || !fields['clientName'] || !fields['heading'] || !fields['details']) {
-			return functionUtils.buildResponse({ message: 'Could not parse data' }, 400);
+			return functionUtils.buildResponse({ error: 'Could not parse data' }, 400);
 		}
 
 		const qrCodeBuffer = await functionUtils.generateQRCode(`${certificatesPage}?certId=${certId}`);

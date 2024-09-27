@@ -4,7 +4,7 @@ import {
   APIGatewayProxyResult
 } from 'aws-lambda';
 import functionUtils from './utils/function-utils';
-import dynamoUtil from './utils/dynamo-util';
+import dynamoUtils from './utils/dynamo-utils';
 import { env } from 'process';
 import { unmarshall } from '@aws-sdk/util-dynamodb';
 
@@ -16,17 +16,20 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 
 		const params = event.queryStringParameters;
 
-		if (!params || !params['certId']) {
-			console.log(`Event not valid! Query params - ${JSON.stringify(params)}`);
-			return functionUtils.buildResponse({ message: 'Event not valid' }, 400);
+		if (!functionUtils.isEventValid(event) || !params || !params['certId']) {
+			console.log(`Event not valid! Event data - ${JSON.stringify({
+				params,
+				headers: event.headers
+			})}`);
+			return functionUtils.buildResponse({ error: 'Event not valid' }, 400);
 		}
 
 		const certId = params['certId'];
 
-		const response = await dynamoUtil.getItem(certDataTableName, certId);
+		const response = await dynamoUtils.getItem(certDataTableName, certId);
 		if (!response.Item) {
 			console.log(`Item with key ${certId} not found`);
-			return functionUtils.buildResponse({ message: 'Not found' }, 404);
+			return functionUtils.buildResponse({ error: 'Not found' }, 404);
 		}
 		const item = unmarshall(response.Item);
 		console.log('Item - ', item);

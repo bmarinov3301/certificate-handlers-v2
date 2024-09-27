@@ -34,12 +34,8 @@ const buildResponse = (data: any, statusCode: number): APIGatewayProxyResult => 
 
 const isEventValid = (event: APIGatewayProxyEvent): boolean | undefined => {
 	console.log('Checking event header values...');
-
-	const contentType = event.headers['Content-Type'] || event.headers['content-type'];
 	const customHeader = event.headers[customHeaderName];
-  const headersValid = contentType?.startsWith('multipart/form-data') && customHeader?.startsWith(customHeaderValue);
-
-  return headersValid;
+  return customHeader?.startsWith(customHeaderValue);
 }
 
 const generateQRCode = async (url: string) : Promise<Buffer> => {

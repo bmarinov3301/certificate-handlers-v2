@@ -67,9 +67,9 @@ export class CertificateHandlersV2Stack extends Stack {
       roleName: `${resourcePrefix}-data-handler-lambda-role`
 		});
 		stackUtils.iam.addCloudWatchPermissions(dataHandlerLambdaRole);
-		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, staticFilesBucket.bucketArn, ['s3:PutObject']);
+		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, staticFilesBucket.bucketArn, ['s3:PutObject', 's3:DeleteObject']);
 		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, templatesBucket.bucketArn, ['s3:GetObject']);
-		stackUtils.iam.addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem']);
+		stackUtils.iam.addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem']);
 
 		// Lambda
 		const saveDataLambda = new NodejsFunction(this, 'SaveCertDataLambda', {
@@ -102,10 +102,27 @@ export class CertificateHandlersV2Stack extends Stack {
 			timeout: Duration.seconds(10),
 			role: dataHandlerLambdaRole,
 			environment: {
+				certDataTableName: certificateDataTable.tableName,
+				lambdaCustomHeaderName,
+				lambdaCustomHeaderValue,
+				allowedOrigin: restApiAllowedOrigins[0],
+			}
+		});
+
+		const deleteDataLambda = new NodejsFunction(this, 'DeleteCertDataLambda', {
+			functionName: `${resourcePrefix}-delete-cert-data-lambda`,
+			runtime: lambda.Runtime.NODEJS_20_X,
+			handler: 'handler',
+			entry: path.join(__dirname, 'lambda-functions/delete-cert-data-lambda.ts'),
+			memorySize: 128,
+			timeout: Duration.seconds(10),
+			role: dataHandlerLambdaRole,
+			environment: {
 				imagesBucket: staticFilesBucket.bucketName,
 				certDataTableName: certificateDataTable.tableName,
 				lambdaCustomHeaderName,
-				allowedOrigin: restApiAllowedOrigins[0],
+				lambdaCustomHeaderValue,
+				allowedOrigin: restApiAllowedOrigins[0]
 			}
 		});
 
@@ -117,12 +134,21 @@ export class CertificateHandlersV2Stack extends Stack {
         allowOrigins: restApiAllowedOrigins,
         allowMethods: Cors.ALL_METHODS,
         allowHeaders: ['Content-Type', lambdaCustomHeaderName],
-    }
+    	}
     });
+
     const uploadDataResource = apiGateway.root.addResource('upload-data');
     uploadDataResource.addMethod('POST', new LambdaIntegration(saveDataLambda));
 
 		const getDataResource = apiGateway.root.addResource('get-data');
 		getDataResource.addMethod('GET', new LambdaIntegration(getDataLambda));
+
+		const deleteDataResource = apiGateway.root.addResource('delete-data');
+		const deleteCertResource = deleteDataResource.addResource('{certId}');
+		deleteCertResource.addMethod('DELETE', new LambdaIntegration(deleteDataLambda), {
+			requestParameters: {
+        'method.request.path.certId': true
+      }
+		});
 	}
 }
