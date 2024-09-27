@@ -69,6 +69,7 @@ const fillInPdfFormData = async (
 
 	if (image.content) {
 		const placeholderWidth = 538;
+		const placeholderHeight = 380;
 		const pdfImage = await pdfDoc.embedPng(image.content);
 		const { width: imageWidth, height: imageHeight } = pdfImage.scale(1);
 
@@ -81,11 +82,17 @@ const fillInPdfFormData = async (
 			scaledHeight = imageHeight * scaleFactor;
 		}
 
+		if (scaledHeight > placeholderHeight) {
+			const heightScaleFactor = placeholderHeight / scaledHeight;
+			scaledWidth = scaledWidth * heightScaleFactor;
+			scaledHeight = scaledHeight * heightScaleFactor;
+		}
+
 		const centeredX = (pageWidth - scaledWidth) / 2;
 
 		page.drawImage(pdfImage, {
 			x: centeredX,
-			y: 330,
+			y: 626 - scaledHeight,
 			width: scaledWidth,
 			height: scaledHeight
 		});
