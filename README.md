@@ -1,14 +1,19 @@
-# Welcome to your CDK TypeScript project
+# TypeScript PDF certificate creation project
+## Project overview
+This project is deployed to a live environment as an extension of a wordpress website. The purpose of the application is to accept a form data request sent from a private (admin accessible) page so users on the site can access their certificates after purchasing them. The application automates storing of the certificate data and generating the PDF certificate which is later sent to users and made accessible by them.
 
-This is a blank project for CDK development with TypeScript.
+## Project functionality
+- Accept form data sent from a client (browser)
+- Generate a QR code with the certificate URL
+- Save data to DynamoDB
+- Save image and QR code data to S3
+- Fill in a PDF template with the data
+- Return the completed PDF file to the client for the admin user to download
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
-
-## Useful commands
-
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+## AWS Infrastructure used
+The project is developed to integrate with AWS. Infrastructure is developed, maintained and deployed via AWS CDK. Services include:
+- API Gateway
+- Lambda
+- CloudWatch
+- DynamoDB
+- S3
