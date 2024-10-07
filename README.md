@@ -17,3 +17,6 @@ The project is developed to integrate with AWS. Infrastructure is developed, mai
 - CloudWatch
 - DynamoDB
 - S3
+
+## Important!
+The **lib/constants.ts** file is left empty in order to not include sensitive information in the public repository about the deployed application. The data needs to filled out in order to setup and deploy this solution.
