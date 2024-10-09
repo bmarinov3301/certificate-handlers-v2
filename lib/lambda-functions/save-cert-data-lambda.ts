@@ -12,6 +12,7 @@ import dynamoUtil from './utils/dynamo-utils';
 
 const templatesBucketName = env.templatesBucket ?? '';
 const imagesBucketName = env.imagesBucket ?? '';
+const certificatesBucketName = env.certificatesBucket ?? '';
 const certDataTableName = env.certDataTableName ?? '';
 const pdfTemplate = env.pdfTemplateFile ?? '';
 const certificatesPage = env.certificatesPage ?? '';
@@ -39,25 +40,36 @@ export const handler: Handler = async (event: APIGatewayProxyEvent): Promise<API
 			return functionUtils.buildResponse({ error: 'Could not parse data' }, 400);
 		}
 
+		// Generate QR code
 		const qrCodeBuffer = await functionUtils.generateQRCode(`${certificatesPage}?certId=${certId}`);
 
-		// Save form data image to S3 bucket
+		// Upload QR code and received image to S3
 		await s3Utils.uploadObject(imagesBucketName, `${certId}.png`, image.content, image.contentType);
-		// todo: can you extract object URL from response ?
 		await s3Utils.uploadObject(imagesBucketName, `${certId}-qr-code.png`, qrCodeBuffer, 'image/png');
 
 		// Save form data and S3 image link to DynamoDB
 		await saveItemToDynamo(fields, certId);
 
 		// Retrieve PDF template
-		console.log(fields['outcome']);
 		const templateSuffix = fields['outcome'] == 'true' ? 'authentic' : 'not-authentic';
 		const response = await s3Utils.getObject(templatesBucketName, `${pdfTemplate}-${templateSuffix}.pdf`);
-		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, qrCodeBuffer, certId, fields, image);
 
+		console.log('Adding data to PDF template...');
+		const modifiedPDF = await pdfUtils.fillInPdfFormData(response.Body as NodeJS.ReadableStream, qrCodeBuffer, certId, fields, image.content);
+
+		await s3Utils.uploadObject(certificatesBucketName, `${certId}.pdf`, modifiedPDF, 'application/pdf');
+
+		// A presigned URL is created to securely allow the WordPress site sending requests to display the PDF after the Lambda is finished
+		// If the PDF is returned as part of the response the Lambda errors out due to the response limit being reached
+		// Had difficulty integrating the 'sharp' npm package due to the Lambda linux-x64 architecture
+		const certificateUrl = await s3Utils.generatePresignedUrl(certificatesBucketName, `${certId}.pdf`);
+
+		console.log(`Successfully finished certificate ${certId}. Returning PDF response...`);
 		return functionUtils.buildResponse({
 			certificatePage: `${certificatesPage}?certId=${certId}`,
-			pdfData: modifiedPDF.toString('base64')
+			certificateUrl
+			// Leaving this for now if 'sharp' npm package integration can be fixed
+			// pdfData: modifiedPDF.toString('base64')
 		}, 200);
 	}
 	catch (error: any) {

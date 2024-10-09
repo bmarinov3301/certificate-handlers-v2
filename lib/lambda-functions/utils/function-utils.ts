@@ -11,6 +11,8 @@ import {
   ParsedFormData,
   CertificateData
 } from '../../types';
+// sharp
+import * as crypto from 'crypto';
 
 const customHeaderName = env.lambdaCustomHeaderName ?? 'HeaderNameNotExist';
 const customHeaderValue = env.lambdaCustomHeaderValue ?? 'HeaderValueNotExist';

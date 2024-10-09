@@ -1,7 +1,7 @@
 import { PDFDocument } from 'pdf-lib';
 import { env } from 'process';
 import moment from 'moment';
-import { Detail, UploadedImage } from '../../types';
+import { Detail } from '../../types';
 
 const userTimeZone = env.userTimeZone ?? '';
 
@@ -19,7 +19,7 @@ const fillInPdfFormData = async (
 	qrCodeBuffer: Buffer,
 	certId: string,
 	fields: { [key: string]: string },
-	image: UploadedImage
+	image: Buffer | undefined
 ) : Promise<Buffer> => {
 	const pdfBuffer = await streamToBuffer(stream);
 
@@ -67,10 +67,10 @@ const fillInPdfFormData = async (
 		detailsPlaceholder.setText(detailsText);
 	}
 
-	if (image.content) {
+	if (image) {
 		const placeholderWidth = 538;
 		const placeholderHeight = 380;
-		const pdfImage = await pdfDoc.embedPng(image.content);
+		const pdfImage = await pdfDoc.embedPng(image);
 		const { width: imageWidth, height: imageHeight } = pdfImage.scale(1);
 
 		let scaledWidth = imageWidth;

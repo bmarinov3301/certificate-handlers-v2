@@ -33,7 +33,7 @@ export class CertificateHandlersV2Stack extends Stack {
 
 		// S3
 		const templatesBucket = new s3.Bucket(this, 'TemplatesBucket', {
-			bucketName: `${resourcePrefix}-pdf-templates`,
+			bucketName: `${resourcePrefix}-pdf-templates-bucket`,
 			blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
@@ -41,7 +41,7 @@ export class CertificateHandlersV2Stack extends Stack {
 		});
 
 		const staticFilesBucket = new s3.Bucket(this, 'ImagesBucket', {
-			bucketName: `${resourcePrefix}-static-images`,
+			bucketName: `${resourcePrefix}-static-images-bucket`,
 			publicReadAccess: true,
 			blockPublicAccess: {
 				blockPublicAcls: false,
@@ -50,6 +50,14 @@ export class CertificateHandlersV2Stack extends Stack {
 				restrictPublicBuckets: false
 			},
 			encryption: s3.BucketEncryption.S3_MANAGED,
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true
+		});
+
+		const certificatesBucket = new s3.Bucket(this, 'CertificatesBucket', {
+			bucketName: `${resourcePrefix}-pdf-certificates-bucket`,
+			blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true
 		});
@@ -68,63 +76,51 @@ export class CertificateHandlersV2Stack extends Stack {
 		});
 		stackUtils.iam.addCloudWatchPermissions(dataHandlerLambdaRole);
 		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, staticFilesBucket.bucketArn, ['s3:PutObject', 's3:DeleteObject']);
+		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, certificatesBucket.bucketArn, ['s3:PutObject', 's3:GetObject']);
 		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, templatesBucket.bucketArn, ['s3:GetObject']);
 		stackUtils.iam.addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem']);
 
 		// Lambda
-		const saveDataLambda = new NodejsFunction(this, 'SaveCertDataLambda', {
-			functionName: `${resourcePrefix}-save-cert-data-lambda`,
-			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'handler',
-			entry: path.join(__dirname, 'lambda-functions/save-cert-data-lambda.ts'),
-			memorySize: 256,
-			timeout: Duration.seconds(30),
-			role: dataHandlerLambdaRole,
-			environment: {
+		const saveDataLambda = stackUtils.lambda.createLambda(
+			this,
+			'SaveCertDataLambda',
+			'save-cert-data-lambda',
+			path.join(__dirname, 'lambda-functions/save-cert-data-lambda.ts'),
+			dataHandlerLambdaRole,
+			{
 				templatesBucket: templatesBucket.bucketName,
 				imagesBucket: staticFilesBucket.bucketName,
+				certificatesBucket: certificatesBucket.bucketName,
 				certDataTableName: certificateDataTable.tableName,
-				lambdaCustomHeaderName,
-				lambdaCustomHeaderValue,
-				allowedOrigin: restApiAllowedOrigins[0],
 				pdfTemplateFile,
 				certificatesPage,
 				userTimeZone
-			}
-		});
+			},
+			256
+		);
 
-		const getDataLambda = new NodejsFunction(this, 'GetCertDataLambda', {
-			functionName: `${resourcePrefix}-get-cert-data-lambda`,
-			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'handler',
-			entry: path.join(__dirname, 'lambda-functions/get-cert-data-lambda.ts'),
-			memorySize: 128,
-			timeout: Duration.seconds(10),
-			role: dataHandlerLambdaRole,
-			environment: {
+		const getDataLambda = stackUtils.lambda.createLambda(
+			this,
+			'GetCertDataLambda',
+			'get-cert-data-lambda',
+			path.join(__dirname, 'lambda-functions/get-cert-data-lambda.ts'),
+			dataHandlerLambdaRole,
+			{
 				certDataTableName: certificateDataTable.tableName,
-				lambdaCustomHeaderName,
-				lambdaCustomHeaderValue,
-				allowedOrigin: restApiAllowedOrigins[0],
 			}
-		});
+		);
 
-		const deleteDataLambda = new NodejsFunction(this, 'DeleteCertDataLambda', {
-			functionName: `${resourcePrefix}-delete-cert-data-lambda`,
-			runtime: lambda.Runtime.NODEJS_20_X,
-			handler: 'handler',
-			entry: path.join(__dirname, 'lambda-functions/delete-cert-data-lambda.ts'),
-			memorySize: 128,
-			timeout: Duration.seconds(10),
-			role: dataHandlerLambdaRole,
-			environment: {
+		const deleteDataLambda = stackUtils.lambda.createLambda(
+			this,
+			'DeleteCertDataLambda',
+			'delete-cert-data-lambda',
+			path.join(__dirname, 'lambda-functions/delete-cert-data-lambda.ts'),
+			dataHandlerLambdaRole,
+			{
 				imagesBucket: staticFilesBucket.bucketName,
 				certDataTableName: certificateDataTable.tableName,
-				lambdaCustomHeaderName,
-				lambdaCustomHeaderValue,
-				allowedOrigin: restApiAllowedOrigins[0]
 			}
-		});
+		);
 
 		// API Gateway
 		const apiGateway = new RestApi(this, 'APIGateway', {

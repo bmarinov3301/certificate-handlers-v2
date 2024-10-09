@@ -5,6 +5,7 @@ import {
 	PutObjectCommand,
 	S3Client
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client();
 
@@ -40,9 +41,20 @@ const deleteObject = async (bucketName: string, key: string): Promise<void> => {
 	await s3Client.send(command);
 }
 
+const generatePresignedUrl = async (bucketName: string, key: string) => {
+	const command = new GetObjectCommand({
+		Bucket: bucketName,
+		Key: key
+	});
+
+	console.log(`Generating presigned URL for object with key ${key} in bucket ${bucketName}`);
+	return await getSignedUrl(s3Client, command, { expiresIn: 300 });
+}
+
 const s3Utils = {
 	getObject,
 	uploadObject,
-	deleteObject
+	deleteObject,
+	generatePresignedUrl
 }
 export default s3Utils;
