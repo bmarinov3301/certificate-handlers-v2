@@ -2,6 +2,8 @@ import {
 	DeleteObjectCommand,
 	GetObjectCommand,
 	GetObjectCommandOutput,
+	ListObjectsV2Command,
+	ListObjectsV2CommandOutput,
 	PutObjectCommand,
 	S3Client
 } from '@aws-sdk/client-s3';
@@ -41,7 +43,7 @@ const deleteObject = async (bucketName: string, key: string): Promise<void> => {
 	await s3Client.send(command);
 }
 
-const generatePresignedUrl = async (bucketName: string, key: string) => {
+const generatePresignedUrl = async (bucketName: string, key: string): Promise<string> => {
 	const command = new GetObjectCommand({
 		Bucket: bucketName,
 		Key: key
@@ -51,10 +53,20 @@ const generatePresignedUrl = async (bucketName: string, key: string) => {
 	return await getSignedUrl(s3Client, command, { expiresIn: 300 });
 }
 
+const getAllObjects = async(bucketName: string): Promise<ListObjectsV2CommandOutput> => {
+	const command = new ListObjectsV2Command({
+		Bucket: bucketName
+	});
+
+	console.log(`Getting all objects from bucket ${bucketName}`);
+	return await s3Client.send(command);
+}
+
 const s3Utils = {
 	getObject,
 	uploadObject,
 	deleteObject,
-	generatePresignedUrl
+	generatePresignedUrl,
+	getAllObjects
 }
 export default s3Utils;

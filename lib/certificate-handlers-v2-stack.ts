@@ -2,7 +2,6 @@ import { Construct } from 'constructs';
 import {
 	resourcePrefix,
 	lambdaCustomHeaderName,
-	lambdaCustomHeaderValue,
 	restApiAllowedOrigins,
 	pdfTemplateFile,
 	certificatesPage,
@@ -12,18 +11,17 @@ import {
 	Stack,
 	StackProps,
 	RemovalPolicy,
-	Duration,
 	aws_dynamodb as dynamoDB,
 	aws_s3 as s3,
 	aws_iam as iam,
-	aws_lambda as lambda
+	aws_events as events,
+	aws_events_targets as targets
 } from 'aws-cdk-lib';
 import {
   RestApi,
   LambdaIntegration,
   Cors
 } from 'aws-cdk-lib/aws-apigateway';
-import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import stackUtils from './stack-utils';
 import path = require('path');
 
@@ -76,7 +74,7 @@ export class CertificateHandlersV2Stack extends Stack {
 		});
 		stackUtils.iam.addCloudWatchPermissions(dataHandlerLambdaRole);
 		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, staticFilesBucket.bucketArn, ['s3:PutObject', 's3:DeleteObject']);
-		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, certificatesBucket.bucketArn, ['s3:PutObject', 's3:GetObject']);
+		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, certificatesBucket.bucketArn, ['s3:PutObject', 's3:GetObject', 's3:DeleteObject']);
 		stackUtils.iam.addS3Permissions(dataHandlerLambdaRole, templatesBucket.bucketArn, ['s3:GetObject']);
 		stackUtils.iam.addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem']);
 
@@ -121,6 +119,27 @@ export class CertificateHandlersV2Stack extends Stack {
 				certDataTableName: certificateDataTable.tableName,
 			}
 		);
+
+		const scheduledDeletePdfLambda = stackUtils.lambda.createLambda(
+			this,
+			'DeletePdfLambda',
+			'scheduled-delete-pdf-lambda',
+			path.join(__dirname, 'lambda-functions/scheduled-delete-pdf-lambda.ts'),
+			dataHandlerLambdaRole,
+			{
+				certificatesBucket: certificatesBucket.bucketName
+			}
+		)
+
+		// EventBridge rule
+		const weeklyRule = new events.Rule(this, 'WeeklyTriggerRule', {
+			schedule: events.Schedule.cron({
+				minute: '0',
+        hour: '6',
+        weekDay: '1'
+			})
+		});
+		weeklyRule.addTarget(new targets.LambdaFunction(scheduledDeletePdfLambda));
 
 		// API Gateway
 		const apiGateway = new RestApi(this, 'APIGateway', {
