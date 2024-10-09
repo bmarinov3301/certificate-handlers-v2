@@ -44,8 +44,7 @@ const deleteItem = async (tableName: string, key: string): Promise<void> => {
 	});
 
 	console.log(`Deleting item with ID ${key} in table ${tableName}...`);
-	const response = await dynamoClient.send(command);
-	console.log(`Delete response - ${JSON.stringify(response)}`);
+	await dynamoClient.send(command);
 }
 
 const dynamoUtils = {

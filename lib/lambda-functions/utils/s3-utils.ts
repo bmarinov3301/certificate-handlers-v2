@@ -1,5 +1,6 @@
 import {
 	DeleteObjectCommand,
+	DeleteObjectsCommand,
 	GetObjectCommand,
 	GetObjectCommandOutput,
 	ListObjectsV2Command,
@@ -62,11 +63,22 @@ const getAllObjects = async(bucketName: string): Promise<ListObjectsV2CommandOut
 	return await s3Client.send(command);
 }
 
+const deleteObjectList = async (bucketName: string, objectsToDelete: { Key: string }[]) => {
+	const command = new DeleteObjectsCommand({
+		Bucket: bucketName,
+		Delete: { Objects: objectsToDelete }
+	});
+
+	console.log(`Deleting objects from S3 bucket ${bucketName} - `, JSON.stringify(objectsToDelete));
+	await s3Client.send(command);
+}
+
 const s3Utils = {
 	getObject,
 	uploadObject,
 	deleteObject,
 	generatePresignedUrl,
-	getAllObjects
+	getAllObjects,
+	deleteObjectList
 }
 export default s3Utils;

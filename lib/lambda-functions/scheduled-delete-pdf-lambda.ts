@@ -15,9 +15,20 @@ export const handler: Handler = async (event: any): Promise<void> => {
     return;
   }
 
-	console.log('Current time - ', moment().format());
+	const now = moment();
 
-	listResult.Contents.map(item => {
-		console.log(item.LastModified);
-	});
+	const objectsToDelete = listResult.Contents
+	.filter(object => {
+		const itemModifiedAt = moment(object.LastModified);
+		return moment(itemModifiedAt).isBefore(now.subtract(1, 'days'));
+	}).map(item => ({ Key: item.Key! }));
+	console.log('Keys to delete - ', JSON.stringify(objectsToDelete));
+
+	if (objectsToDelete && objectsToDelete.length == 0) {
+		console.log(`No keys to delete found in S3 bucket result list - `, JSON.stringify(listResult.Contents));
+    return;
+	}
+
+	await s3Utils.deleteObjectList(certificatesBucketName, objectsToDelete);
+	console.log('Successfully deleted object collection. Ending process...');
 }
