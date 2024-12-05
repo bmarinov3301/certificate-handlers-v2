@@ -23,11 +23,12 @@ const fillInPdfFormData = async (
 ) : Promise<Buffer> => {
 	const pdfBuffer = await streamToBuffer(stream);
 
-	const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
-	const qrCodeImage = await pdfDoc.embedPng(qrCodeBuffer);
+	const pdfDoc = await PDFDocument.load(pdfBuffer);
 	const page = pdfDoc.getPage(0);
 
+
 	// Add QR Code
+	const qrCodeImage = await pdfDoc.embedPng(qrCodeBuffer);
 	const { width: pageWidth, height: pageHeight } = page.getSize();
 	const qrSize = 115;
 	const xPos = 80;
@@ -39,8 +40,10 @@ const fillInPdfFormData = async (
 		height: qrSize
 	});
 
+
 	// Set form field data
 	const form = pdfDoc.getForm();
+
 	const dateField = form.getTextField('date-placeholder');
 	dateField.setText(moment.tz(userTimeZone).format('ll'));
 
@@ -62,7 +65,7 @@ const fillInPdfFormData = async (
 		details.forEach((val: Detail) => {
 			detailsText += `${val.detailName}: ${val.detailValue}\n`;
 		});
-	
+
 		const detailsPlaceholder = form.getTextField('details-placeholder');
 		detailsPlaceholder.setText(detailsText);
 	}
