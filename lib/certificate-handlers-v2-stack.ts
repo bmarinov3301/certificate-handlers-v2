@@ -10,6 +10,7 @@ import {
 import {
 	Stack,
 	StackProps,
+	Duration,
 	RemovalPolicy,
 	aws_dynamodb as dynamoDB,
 	aws_s3 as s3,
@@ -34,8 +35,9 @@ export class CertificateHandlersV2Stack extends Stack {
 			bucketName: `${resourcePrefix}-pdf-templates-bucket`,
 			blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true
+      removalPolicy: RemovalPolicy.RETAIN,
+      autoDeleteObjects: false,
+      versioned: true
 		});
 
 		const staticFilesBucket = new s3.Bucket(this, 'ImagesBucket', {
@@ -48,26 +50,48 @@ export class CertificateHandlersV2Stack extends Stack {
 				restrictPublicBuckets: false
 			},
 			encryption: s3.BucketEncryption.S3_MANAGED,
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true
+      removalPolicy: RemovalPolicy.RETAIN,
+      autoDeleteObjects: false,
+      versioned: true,
+			lifecycleRules: [
+				{
+					transitions: [
+						{
+							storageClass: s3.StorageClass.INFREQUENT_ACCESS,
+							transitionAfter: Duration.days(30)
+						}
+					]
+				}
+			]
 		});
 
 		const certificatesBucket = new s3.Bucket(this, 'CertificatesBucket', {
 			bucketName: `${resourcePrefix}-pdf-certificates-bucket`,
 			blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
       encryption: s3.BucketEncryption.S3_MANAGED,
-      removalPolicy: RemovalPolicy.DESTROY,
-      autoDeleteObjects: true
+      removalPolicy: RemovalPolicy.RETAIN,
+      autoDeleteObjects: false,
+      versioned: true
 		});
 
 		// DynamoDB
 		var certificateDataTable = new dynamoDB.Table(this, 'CertificatesDataTable', {
 			tableName: `${resourcePrefix}-certificates-data`,
 			partitionKey: { name: 'id', type: dynamoDB.AttributeType.STRING },
-			removalPolicy: RemovalPolicy.DESTROY
+			removalPolicy: RemovalPolicy.RETAIN,
+			pointInTimeRecovery: true
 		});
 
 		// IAM
+		const backupHandlerRole = new iam.Role(this, 'DynamoBackupHandlerRole', {
+			assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+			roleName: `${resourcePrefix}-dynamo-backup-handler-role`
+		});
+		stackUtils.iam.addDynamoPermissions(backupHandlerRole,
+			[certificateDataTable.tableArn, `${certificateDataTable.tableArn}/backup/*`],
+			['dynamodb:CreateBackup', 'dynamodb:DeleteBackup', 'dynamodb:ListBackups']);
+		stackUtils.iam.addCloudWatchPermissions(backupHandlerRole);
+
 		const dataHandlerLambdaRole = new iam.Role(this, 'DataHandlerLambdaRole', {
 			assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
       roleName: `${resourcePrefix}-data-handler-lambda-role`
@@ -79,6 +103,17 @@ export class CertificateHandlersV2Stack extends Stack {
 		stackUtils.iam.addDynamoPermissions(dataHandlerLambdaRole, [certificateDataTable.tableArn], ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem']);
 
 		// Lambda
+		const backupDynamoLambda = stackUtils.lambda.createLambda(
+			this,
+			'BackupDynamoLambda',
+			'backup-dynamo-lambda',
+			path.join(__dirname, 'lambda-functions/backup-dynamo-lambda.ts'),
+			backupHandlerRole,
+			{
+				certDataTableName: certificateDataTable.tableName
+			}
+		)
+
 		const saveDataLambda = stackUtils.lambda.createLambda(
 			this,
 			'SaveCertDataLambda',
@@ -132,6 +167,12 @@ export class CertificateHandlersV2Stack extends Stack {
 		)
 
 		// EventBridge rule
+		const twoWeeksBackupRule = new events.Rule(this, 'TwoWeeksBackupRule', {
+			schedule: events.Schedule.expression('cron(0 4 ? * MON#2 *)'),
+			description: 'Creates DynamoDB backup every two weeks on Monday at 4 AM'
+		});
+		twoWeeksBackupRule.addTarget(new targets.LambdaFunction(backupDynamoLambda));
+
 		const weeklyRule = new events.Rule(this, 'WeeklyTriggerRule', {
 			schedule: events.Schedule.cron({
 				minute: '0',
