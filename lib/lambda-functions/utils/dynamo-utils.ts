@@ -4,8 +4,12 @@ import {
 	DynamoDBClient,
 	GetItemCommand,
 	GetItemCommandOutput,
-	PutItemCommand
+	PutItemCommand,
+	CreateBackupCommand,
+	ListBackupsCommand,
+	DeleteBackupCommand
 } from '@aws-sdk/client-dynamodb';
+import moment from 'moment';
 
 const dynamoClient = new DynamoDBClient();
 
@@ -47,9 +51,40 @@ const deleteItem = async (tableName: string, key: string): Promise<void> => {
 	await dynamoClient.send(command);
 }
 
+const createBackup = async (tableName: string, backupName: string): Promise<void> => {
+	const listCommand = new ListBackupsCommand({
+		TableName: tableName
+	});
+	const existingBackups = await dynamoClient.send(listCommand);
+	console.log('Current backups:', existingBackups);
+
+	const command = new CreateBackupCommand({
+		TableName: tableName,
+		BackupName: backupName
+	});
+
+	console.log(`Creating backup ${backupName} for table ${tableName}...`);
+	const result = await dynamoClient.send(command);
+	console.log('Successfully created backup:', result);
+
+	if (existingBackups.BackupSummaries?.length) {
+		console.log('Deleting old backups...');
+		for (const backup of existingBackups.BackupSummaries) {
+			if (backup.BackupName !== result.BackupDetails?.BackupName) {
+				const deleteCommand = new DeleteBackupCommand({
+					BackupArn: backup.BackupArn
+				});
+				await dynamoClient.send(deleteCommand);
+				console.log(`Deleted backup ${backup.BackupName}...`);
+			}
+		}
+	}
+}
+
 const dynamoUtils = {
 	getItem,
 	uploadItem,
-	deleteItem
+	deleteItem,
+	createBackup
 }
 export default dynamoUtils;
