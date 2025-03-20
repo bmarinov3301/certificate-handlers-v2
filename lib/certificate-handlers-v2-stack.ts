@@ -16,7 +16,8 @@ import {
 	aws_s3 as s3,
 	aws_iam as iam,
 	aws_events as events,
-	aws_events_targets as targets
+	aws_events_targets as targets,
+	aws_backup as backup
 } from 'aws-cdk-lib';
 import {
   RestApi,
@@ -72,6 +73,41 @@ export class CertificateHandlersV2Stack extends Stack {
       removalPolicy: RemovalPolicy.RETAIN,
       autoDeleteObjects: false,
       versioned: true
+		});
+
+		// Backup
+		const backupVault = new backup.BackupVault(this, 'S3BackupVault', {
+			backupVaultName: `${resourcePrefix}-s3-backup-vault`,
+			removalPolicy: RemovalPolicy.RETAIN
+		});
+
+		const backupPlan = new backup.BackupPlan(this, 'S3BackupPlan', {
+			backupPlanName: `${resourcePrefix}-s3-backup-plan`,
+			backupVault: backupVault,
+			backupPlanRules: [
+				new backup.BackupPlanRule({
+					ruleName: 'MonthlyBackups',
+					scheduleExpression: events.Schedule.cron({
+						minute: '0',
+						hour: '4',
+						day: '1',
+						month: '*',
+						year: '*'
+					}),
+					deleteAfter: Duration.days(32),
+					completionWindow: Duration.minutes(30),
+					startWindow: Duration.hours(1),
+					enableContinuousBackup: false,
+					moveToColdStorageAfter: undefined
+				})
+			]
+		});
+
+		backupPlan.addSelection('S3Selection', {
+			resources: [
+				backup.BackupResource.fromArn(staticFilesBucket.bucketArn)
+			],
+			allowRestores: true
 		});
 
 		// DynamoDB
