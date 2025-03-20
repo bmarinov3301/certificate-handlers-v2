@@ -95,7 +95,7 @@ export class CertificateHandlersV2Stack extends Stack {
 						year: '*'
 					}),
 					deleteAfter: Duration.days(32),
-					completionWindow: Duration.minutes(30),
+					completionWindow: Duration.hours(2),
 					startWindow: Duration.hours(1),
 					enableContinuousBackup: false,
 					moveToColdStorageAfter: undefined
